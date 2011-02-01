@@ -14,7 +14,11 @@ import edu.berkeley.nlp.util.StringIndexer;
  */
 public class ExactLm implements NgramLanguageModel {
 
-   public static final float discount = 0.75f;
+   /**
+    * Discounting factor in Kneser-Ney.
+    * 0.8 gives the highest BLEU score 24.520. 
+    */
+   public static final float discount = 0.8f;
    
    /**
     * Initial capacities for the counters and hash maps. Note that this
