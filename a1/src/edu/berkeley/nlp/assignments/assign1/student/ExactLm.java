@@ -36,7 +36,11 @@ public class ExactLm implements NgramLanguageModel {
    public static final int initial_bigram_capacity_small  = 50000;
    public static final int initial_trigram_capacity_small = 50000;
    
-   public static final double very_small_value = 1e-5;
+   /**
+    * A small value for probability.
+    * 1e-6: 24.502
+    */
+   public static final double very_small_value = 1e-6;
 
    /**
     * Unigram word indexer and counter.
@@ -126,9 +130,6 @@ public class ExactLm implements NgramLanguageModel {
          int word2word3 = bigramIndexer.get(word2, ngram[from + 2]);
 
          int word1word2count = word1word2 > 0 ? bigramCounter[word1word2] : 1;
-         if (word1word2count <= 0) {
-            word1word2count = -1;
-         }
 
          if (word1word2 > 0 && word2word3 > 0) {
             int trigramCount = trigramCounter.get(word1word2, ngram[from + 2]);
@@ -156,7 +157,7 @@ public class ExactLm implements NgramLanguageModel {
          // Assertion: Bigram, beginning of a sentence.
          int word1word2 = bigramIndexer.get(ngram[from], ngram[from + 1]);
          // if (word1word2 == 0) return unseenBigramLogProb;
-         double after12 = (bigramCounter[word1word2] > 0)
+         double x_bigram = (bigramCounter[word1word2] > 0)
                ? n1plus_x_bigram[word1word2]
                : very_small_value;
          int word1count = (ngram[from] < 0 || ngram[from] >= n1plus_x_unigram_x.length)
@@ -166,9 +167,9 @@ public class ExactLm implements NgramLanguageModel {
             // return unseenBigramLogProb;
             return Math.log(very_small_value);
          } else {
-            if (after12 <= 0)
-               after12 = very_small_value;
-            return Math.log(after12 / word1count);
+            if (x_bigram <= 0)
+               x_bigram = very_small_value;
+            return Math.log(x_bigram / word1count);
          }
       }
    }
