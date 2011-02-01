@@ -1,0 +1,24 @@
+<project name="assign1" default="build" basedir=".">
+  <property name="name" location="assign1"/>
+  <property environment="env"/>
+
+  <target name="build">
+    <delete dir="build_assign1"/>
+    <mkdir dir="build_assign1"/>
+    <copy todir="build_assign1">
+    	<fileset dir=".">
+    		<include name="src/**"/>
+    	</fileset>
+    </copy>
+    <javac srcdir="build_assign1/src" debug="true" classpath="${name}.jar" source="1.5" target="1.5">
+      <compilerarg value="-Xlint:deprecation"/>
+      <include name="**/*.java"/>
+    </javac>
+    <jar destfile="${name}-submit.jar" basedir="build_assign1/src">
+	</jar>
+	<delete dir="build_assign1"/>
+	
+  </target>
+</project>
+                                 
+                                 
