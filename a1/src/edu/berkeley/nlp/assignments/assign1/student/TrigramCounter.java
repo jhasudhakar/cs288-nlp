@@ -18,24 +18,25 @@ package edu.berkeley.nlp.assignments.assign1.student;
  * @author rxin
  * 
  */
-public class TrigramCounter extends CrazilyPackedHashMap {
-   
+public class TrigramCounter extends CrazilyPackedHashMap implements
+      TrigramCounterInterface {
+
    public TrigramCounter(int initialCapacity, float loadFactor) {
       super(initialCapacity, loadFactor, 0x3FFFFF, 23, 19);
    }
 
-   /**
-    * Increase the count of the trigram.
-    * 
-    * @param w1w2
-    *           The bigram index of the first two grams.
-    * @param w3
-    *           The unigram index of the third gram.
+   /* (non-Javadoc)
+    * @see edu.berkeley.nlp.assignments.assign1.student.TrigramCounterInterface#increaseCount(int, int)
     */
+   @Override
    public int increaseCount(int w1w2, int w3) {
       return adjustOrPutValue(w1w2, w3, 1);
    }
    
+   /* (non-Javadoc)
+    * @see edu.berkeley.nlp.assignments.assign1.student.TrigramCounterInterface#reportTopTrigram()
+    */
+   @Override
    public void reportTopTrigram() {
       long maxCount = 0;
       for (int i = 0; i < data.length; i++) {

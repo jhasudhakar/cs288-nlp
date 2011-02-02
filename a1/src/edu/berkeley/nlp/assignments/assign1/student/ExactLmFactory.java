@@ -9,7 +9,8 @@ public class ExactLmFactory implements LanguageModelFactory {
 
    public NgramLanguageModel newLanguageModel(
          Iterable<List<String>> trainingData) {
-      ExactLm model = new ExactLm(trainingData);
+      System.out.println("Exact language model");
+      KneserNeyTrigramLm model = new KneserNeyTrigramLm(trainingData, false);
       return model;
    }
 

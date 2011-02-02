@@ -9,9 +9,11 @@ public class NoisyLmFactory implements LanguageModelFactory
 {
 
 	public NgramLanguageModel newLanguageModel(Iterable<List<String>> trainingData) {
-
-		 return null; // TODO Construct a noisy LM implementation here.
-
+	   System.out.println("Noisy language model");
+	   
+	   // Don't use approximation given our exact model fits all requirements.
+      KneserNeyTrigramLm model = new KneserNeyTrigramLm(trainingData, false);
+      return model;
 	}
 
 }

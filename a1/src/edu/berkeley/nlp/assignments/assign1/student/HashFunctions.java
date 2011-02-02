@@ -75,6 +75,14 @@ public final class HashFunctions {
    public static int hash(Object object) {
       return object == null ? 0 : object.hashCode();
    }
+   
+   /**
+    * Calculate a 9 bit (less than 512) checksum for a long integer.
+    */
+   public static int checksum(long value) {
+      // 509 is the largest prime number smaller than 512.
+      return ((int) value * 31) % 509;
+   }
 
    /**
     * In profiling, it has been found to be faster to have our own local

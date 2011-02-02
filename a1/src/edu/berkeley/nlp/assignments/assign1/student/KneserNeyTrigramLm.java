@@ -12,13 +12,30 @@ import edu.berkeley.nlp.util.StringIndexer;
  * 
  * @author rxin
  */
-public class ExactLm implements NgramLanguageModel {
+public class KneserNeyTrigramLm implements NgramLanguageModel {
 
    /**
     * Discounting factor in Kneser-Ney.
-    * 0.8 gives the highest BLEU score 24.520. 
+    * 0.70 -> 24.493
+    * 0.75 -> 24.502
+    * 0.80 -> 24.520
+    * 0.90 -> 24.533
+    * 0.95 -> 24.493
     */
-   public static final float discount = 0.8f;
+   public static final float discount = 0.9f;
+   
+   /**
+    * Hash table load factor. The larger this is, the less memory
+    * we need to store the language model. However, performance 
+    * degrades linearly when the factor goes beyond 0.7.
+    * 0.70 -> 297.570s, 997M
+    * 0.75 -> 315.191s, 950M
+    * 0.80 -> 311.193s, 905M
+    * 0.85 -> 331.348s, 881M
+    * 0.90 -> 354.125s, 861M
+    * 0.95 -> 710.900s, 836M
+    */
+   public static final float loadFactor = 0.80f;
    
    /**
     * Initial capacities for the counters and hash maps. Note that this
@@ -29,9 +46,14 @@ public class ExactLm implements NgramLanguageModel {
    public static final int initial_bigram_capacity  = 8375000;
    public static final int initial_trigram_capacity = 42000000;
    // Basic stats:
-   // ---495,172 unigrams
-   // -8,374,230 bigrams
-   // 41,627,672 trigrams
+   // ---495,172 unigrams - 19 bits
+   // -8,374,230 bigrams  - 23 bits
+   // 41,627,672 trigrams - 26 bits
+   
+   // Unigram Size: 495172
+   // Bigram Size: 8374230
+   // Trigram Size: 29973319
+
    
    /**
     * Smaller capacity for the sanity test.
@@ -62,7 +84,7 @@ public class ExactLm implements NgramLanguageModel {
     * Trigram counter. There is no need for an indexer here. Note this is the
     * data structure that consumes the most amount of memory.
     */
-   TrigramCounter trigramCounter;
+   TrigramCounterInterface trigramCounter;
    int totalTrigram = 0;
 
    /**
@@ -75,14 +97,15 @@ public class ExactLm implements NgramLanguageModel {
    double unseenBigramLogProb = 0;
    double unseenTrigramLogProb = 0;
 
-   public ExactLm(Iterable<List<String>> sentenceCollection) {
-      
+   public KneserNeyTrigramLm(Iterable<List<String>> sentenceCollection,
+         boolean approximate) {
+
       if (Runtime.getRuntime().maxMemory() > 500 * 1024 * 1024) {
          init(initial_unigram_capacity, initial_bigram_capacity,
-               initial_trigram_capacity);
+               initial_trigram_capacity, approximate);
       } else {
          init(initial_unigram_capacity_small, initial_bigram_capacity_small,
-               initial_trigram_capacity_small);
+               initial_trigram_capacity_small, approximate);
       }
       
       buildModel(sentenceCollection);
@@ -92,18 +115,25 @@ public class ExactLm implements NgramLanguageModel {
     * Allocate memory for the structures. The structures are allocated here so I
     * can better measure the memory consumption.
     */
-   private void init(int unigram_cap, int bigram_cap, int trigram_cap) {
-      Utils.reportMemoryUsage();
+   private void init(int unigram_cap, int bigram_cap, int trigram_cap,
+         boolean approximate) {
+     Utils.reportMemoryUsage();
       wordIndexer = EnglishWordIndexer.getIndexer();
       Utils.reportMemoryUsage();
       unigramCounter = new int[unigram_cap];
       Utils.reportMemoryUsage();
-      bigramIndexer = new BigramIndexer(bigram_cap, 0.75f);
+      bigramIndexer = new BigramIndexer(bigram_cap, loadFactor);
       Utils.reportMemoryUsage();
       bigramCounter = new int[bigram_cap];
       Utils.reportMemoryUsage();
-      trigramCounter = new TrigramCounter(trigram_cap, 0.75f);
+      
+      if (!approximate) {
+         trigramCounter = new TrigramCounter(trigram_cap, loadFactor);
+      } else {
+         trigramCounter = new TrigramCounterApproximate(trigram_cap, loadFactor);
+      }
       Utils.reportMemoryUsage();
+      
       n1plus_x_unigram_x = new int[unigram_cap];
       Utils.reportMemoryUsage();
       n1plus_bigram_x = new int[bigram_cap];
@@ -203,7 +233,7 @@ public class ExactLm implements NgramLanguageModel {
     * @param sentenceCollection
     */
    private void buildModel(Iterable<List<String>> sentenceCollection) {
-      System.out.println("Building ExactLmLanguageModel . . .");
+      System.out.println("Building the language model . . .");
 
       // Loop over all sentences.
       int num_sentence = 0;
@@ -273,7 +303,7 @@ public class ExactLm implements NgramLanguageModel {
       setToOneIfZero(unigramCounter);
 
       // Finish up.
-      System.out.println("Done building ExactLmLanguageModel.");
+      System.out.println("Done building language model.");
       reportStatus();
       Utils.reportMemoryUsage();
    }

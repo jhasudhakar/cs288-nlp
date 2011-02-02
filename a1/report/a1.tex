@@ -1,0 +1,97 @@
+\documentclass[12pt]{article}   % list options between brackets
+\usepackage{}              % list packages between braces
+
+% type user-defined commands here
+
+\begin{document}
+
+\title{CS288 Assignment 1: Language Model}   % type title between braces
+\author{Reynold Shi Xin}         % type author(s) between braces
+\date{rxin@cs.berkeley.edu}    % type date between braces
+\maketitle
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Performance Summary}
+I have implemented a trigram language model with Kneser-Ney smoothing. The exact model meets the requirements for both exact and noisy. The following performance metrics are reported on an Amazon EC2 large instance, running Ubuntu 10.04LTS with Sun JDK 1.6:
+\begin{enumerate}
+	\item BLEU score 24.533 with discounting factor 0.90;
+	\item Using hash table load factor 0.8, training takes 300s, decoding takes 300s, memory consumption at 905MB;
+	\item Using hash table load factor 0.95, training takes 400s, decoding takes 700s, memory 836MB;
+	\item Noisy model counts should be 100\% correct because the model is not ``noisy'' at all.
+\end{enumerate}
+
+Note that the above runtime is measured when outputs are printed to stdout. If we re-route output to /dev/null, the speed can be improved further.
+
+Unless otherwise stated, the memory usage number in this report includes the phrase table and vocabulary, which themselves occupy about 300MB.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Code Structure}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Quality Parameters}
+The main quality parameter to tweak is the discount factor in Kneser-Ney. Although 0.70 -- 0.75 are commonly used, the empirical optimal discount value I found is 0.90 despite the difference is almost negligible. This is also consistent with a quick experiment I conducted to determine the empirical discount, which indicates rare trigrams are less likely to re-appear in this corpus.
+
+The following table summarizes how discount factor affects the BLUE score.
+
+\begin{tabular}{ | l | c | }
+	\hline
+	discounting & BLUE score \\
+	\hline
+	0.70 & 24.493 \\
+	0.75 & 24.502 \\
+	0.80 & 24.520 \\
+	0.90 & \textbf{24.533} \\
+	0.95 & 24.493 \\
+	\hline
+\end{tabular}
+
+Another parameter to tweak is the assumed frequency of unseen trigrams and bigrams. I experimented with some different values and concluded the best value for this corpus is $10^{-6}$.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Optimization Techniques}
+I have tried and employed a number of optimization techniques to reduce the memory consumption. Initially, using a naïve implementation that simply stores the language model using Java’s HashMap with closed addressing, the language model would take more than 3 GB of memory to store. This number was cut to less than 1GB using these techniques.
+
+\subsection{Open Addressing Hash Map with Linear Probing}
+First and foremost, to reduce the overhead of Java objects, I had to avoid using Java's HashMap implementation, which supports only closed addressing and doesn't allow using primitive types as keys or values.
+
+I tested GNU Trove, which is a fast and lightweight implementation of collections (e.g. hash maps) for primitives. I was able to fit the language model in 1.7G of memory using GNU Trove. At the end, however, I wrote my own hash map implementation for better performance and memory.
+
+
+\subsection{Hashing Algorithm}
+I tested out a few hashing algorithms for 64 bit integers. The initial hashing algorithm simply mods the integer by a prime number, which is set to the size of the hash map. The performance was terrible due to a high number of collisions, taking over 60 mins to decode. The CERN (European Organization for Nuclear Research) algorithm produces the best performance :
+\begin{verbatim}
+((int) (value ^ (value >>> 32))) * 31;
+\end{verbatim}
+
+\subsection{Context Encoding for Bigrams}
+All words are mapped to a 32-bit integer using the \texttt{StringIndexer} class provided by the instructor. In reality, the corpus only contain half 495,172 unigrams, i.e. 19 bits to store represent unigram.
+
+Because the bigram vector is very sparse (only 8,374,230 bigrams), I exploited context encoding to save space for storing bigrams. A hash map (\texttt{BigramIndexer}) is created to map a bigram (two 32-bit unigrams) to a 23-bit integer.
+
+Using context encoding, I reduced the memory usage to 1.2GB.
+
+
+\subsection{“Crazily Packed” Hash Map}
+The largest memory reduction comes from my own implementation of hash maps.
+
+A somewhat surprising result is despite the bit manipulations, the runtime performance actually improved by using this hash map. Although it’s hard to verify, I suspect the speed improvement is due to higher cache hits and lower page faults thanks to the smaller data structure size.
+
+
+\subsection{Pre-allocated Data Structures}
+To improve the training speed, the language model pre-allocates a large amount of memory to all counters to avoid the re-hashing and dynamic growing of data structures. To pass the sanity test, which only allows 50 MB of max heap space, the language model checks what the max heap size is, and allocates a smaller amount of memory if the max heap size is less than 500 MB.
+
+This optimization technique does not affect the memory consumption and the decoding speed. It does however reduce the training time and allows me to iterate through different algorithms and optimization techniques much faster.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Attempts for Noisy Model}
+
+
+
+\end{document}
