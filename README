@@ -6,7 +6,11 @@ rxin@cs.berkeley.edu
 
 Assignment 1: A fast, efficient Kneser-Ney trigram language model.
 
-Assignment 2:
+Assignment 2: Phrase-Based Decoding using 4 different models.
+ - monotonic beam-search decoder with no language model
+ - monotonic beam search with an integrated trigram language model
+ - beam search that permits limited distortion
+ - last model unknown yet
 
 Assignment 3:
 
