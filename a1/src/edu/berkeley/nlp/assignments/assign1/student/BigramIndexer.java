@@ -1,6 +1,12 @@
 package edu.berkeley.nlp.assignments.assign1.student;
 
-
+/**
+ * A hash map that maps a 64-bit bigram (two unigram indexes, 64 bits) to a
+ * 32-bit bigram index. It is simply a wrapper around CrazilyPackedHashMap.
+ * 
+ * @author rxin
+ * 
+ */
 public class BigramIndexer extends CrazilyPackedHashMap {
 
    public BigramIndexer(int initialCapacity, float loadFactor) {
@@ -14,7 +20,7 @@ public class BigramIndexer extends CrazilyPackedHashMap {
     *           First word in the bigram.
     * @param w2
     *           Second word in the bigram.
-    *           
+    * 
     * @return The index of bigram, starting at 0.
     */
    public int addAndGetIndex(int w1, int w2) {

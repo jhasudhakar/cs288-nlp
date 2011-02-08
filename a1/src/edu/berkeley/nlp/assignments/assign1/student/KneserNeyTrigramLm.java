@@ -35,7 +35,7 @@ public class KneserNeyTrigramLm implements NgramLanguageModel {
     * 0.90 -> 354.125s, 861M
     * 0.95 -> 710.900s, 836M
     */
-   public static final float loadFactor = 0.80f;
+   public static final float loadFactor = 0.75f;
    
    /**
     * Initial capacities for the counters and hash maps. Note that this
@@ -93,6 +93,13 @@ public class KneserNeyTrigramLm implements NgramLanguageModel {
    int n1plus_x_unigram_x[];
    int n1plus_bigram_x[];
    int n1plus_x_bigram[];
+   
+   /**
+    * Basic stats.
+    */
+   int num_trigrams;
+   int num_bigrams;
+   int num_unigrams;
    
    double unseenBigramLogProb = 0;
    double unseenTrigramLogProb = 0;
@@ -217,12 +224,11 @@ public class KneserNeyTrigramLm implements NgramLanguageModel {
       if (ngram.length == 3) {
          int word1word2 = bigramIndexer.get(ngram[0], ngram[1]);
          if (word1word2 > 0) count = trigramCounter.get(word1word2, ngram[2]);
-         else count = 0;
       } else if (ngram.length == 2) {
-         int word1word2 = bigramIndexer.addAndGetIndex(ngram[0], ngram[1]);
-         if (word1word2 > 0) count = bigramCounter[word1word2];
-         else count = 0;
+         int word1word2 = bigramIndexer.get(ngram[0], ngram[1]);
+         if (word1word2 > 0 && word1word2 <= num_bigrams) count = bigramCounter[word1word2];
       } else if (ngram.length == 1) {
+         if (ngram[0] > 0 && ngram[0] < num_unigrams)
          count = unigramCounter[ngram[0]];
       }
       return count;
@@ -284,6 +290,11 @@ public class KneserNeyTrigramLm implements NgramLanguageModel {
             word1word2 = word2word3;
          }
       }
+      
+      // Update stats.
+      num_unigrams = wordIndexer.size();
+      num_bigrams = bigramIndexer.size();
+      num_trigrams = trigramCounter.size();
       
       // Calculate log prob for an unseen bigram.
       int totalBigramCount = 0;
