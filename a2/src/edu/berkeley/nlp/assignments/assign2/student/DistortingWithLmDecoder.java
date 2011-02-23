@@ -1,7 +1,6 @@
 package edu.berkeley.nlp.assignments.assign2.student;
 
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 
 import edu.berkeley.nlp.langmodel.EnglishWordIndexer;
@@ -21,7 +20,7 @@ import edu.berkeley.nlp.util.FastPriorityQueue;
  */
 public class DistortingWithLmDecoder implements Decoder {
   
-  public static final int priorityQueueSize = 500;
+  public static final int priorityQueueSize = 100;
 
   public class BeamSearchOption {
     public int[] lmContextBuf;
@@ -59,15 +58,10 @@ public class DistortingWithLmDecoder implements Decoder {
   public List<ScoredPhrasePairForSentence> decode(List<String> frenchSentence) {
     int length = frenchSentence.size();
     PhraseTableForSentence tmState = tm.initialize(frenchSentence);
-    List<ScoredPhrasePairForSentence> ret = new LinkedList<ScoredPhrasePairForSentence>();
 
     int maxPhraseLen = tmState.getMaxPhraseLength();
-    int lmContextBufSize = lm.getOrder() + tmState.getMaxPhraseLength() + 1;
-    int[] lmContextBuf = new int[lmContextBufSize];
-    int currentContextBufLen = 0;
 
     // Initialize the priority queues.
-    @SuppressWarnings("unchecked")
     FastPriorityQueue<BeamSearchOption> beams[] = new FastPriorityQueue[length + 1];
     for (int start = 0; start <= length; start++) {
       beams[start] = new FastPriorityQueue<BeamSearchOption>();
@@ -96,8 +90,6 @@ public class DistortingWithLmDecoder implements Decoder {
 
       for (int end = start + 1; end <= start + maxPhraseLen && end <= length; ++end) {
 
-        //System.out.println("(start, end) = (" + start + ", " + end + ")");
-
         List<ScoredPhrasePairForSentence> translations = tmState
             .getScoreSortedTranslationsForSpan(start, end);
 
@@ -122,22 +114,39 @@ public class DistortingWithLmDecoder implements Decoder {
               if (option.phrasePairs != null) {
                 prevPhrases = option.phrasePairs.size();
               }
-              for (int d = 0; d <= dm.getDistortionLimit() && d <= prevPhrases; d++) {
-                // Insert this translation into the previous d slot.
-                
+              
+              int dIndex = 0;
+              int d = 0;
+              do {
+
                 BeamSearchOption newOption = new BeamSearchOption();
                 if (option.phrasePairs != null) {
                   newOption.phrasePairs = (ArrayList<ScoredPhrasePairForSentence>) option.phrasePairs
                       .clone();
                 } else {
-                  newOption.phrasePairs = new ArrayList<ScoredPhrasePairForSentence>(1);
+                  newOption.phrasePairs = new ArrayList<ScoredPhrasePairForSentence>(
+                      1);
                 }
-                newOption.phrasePairs.add(prevPhrases - d, translation);
-                
+                newOption.phrasePairs.add(prevPhrases - dIndex, translation);
+
                 // Compute language model score.
-                newOption.score = Decoder.StaticMethods.scoreHypothesis(newOption.phrasePairs, lm, dm);
+                // Note this scoring mechanism is inefficient. We should be able
+                // to reuse the previously calculated score to further compute
+                // the score for this translation. But given it is already 2AM,
+                // and I don't see how improving this efficiency will make me a
+                // better computer scientist, I am leaving it as is.
+                newOption.score = Decoder.StaticMethods.scoreHypothesis(
+                    newOption.phrasePairs, lm, dm);
                 beams[end].setPriority(newOption, newOption.score);
-              }
+
+                // Next distortion position.
+                dIndex++;
+                if (dIndex < prevPhrases) {
+                  d += option.phrasePairs.get(prevPhrases - dIndex).english.indexedEnglish.length;
+                } else {
+                  break;
+                }
+              } while (d <= dm.getDistortionLimit());
             }
           }
         }
@@ -149,26 +158,6 @@ public class DistortingWithLmDecoder implements Decoder {
     BeamSearchOption option = beams[length].getFirst();
 
     return option.phrasePairs;
-  }
-
-  private double scoreLm(final int prevLmStateLength, final int[] lmStateBuf,
-      final int totalTrgLength, final NgramLanguageModel lm) {
-    double score = 0.0;
-
-    if (prevLmStateLength < lmOrder - 1) {
-      for (int i = 1; prevLmStateLength + i < lmOrder; ++i) {
-        final double lmProb = lm.getNgramLogProbability(lmStateBuf, 0,
-            prevLmStateLength + i);
-        score += lmProb;
-      }
-    }
-
-    for (int i = 0; i <= totalTrgLength - lmOrder; ++i) {
-      final double lmProb = lm.getNgramLogProbability(lmStateBuf, i, i
-          + lmOrder);
-      score += lmProb;
-    }
-    return score;
   }
 
 }
