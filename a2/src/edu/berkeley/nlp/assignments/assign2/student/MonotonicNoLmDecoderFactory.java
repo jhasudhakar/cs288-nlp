@@ -6,13 +6,13 @@ import edu.berkeley.nlp.mt.decoder.DecoderFactory;
 import edu.berkeley.nlp.mt.decoder.DistortionModel;
 import edu.berkeley.nlp.mt.phrasetable.PhraseTable;
 
-public class MonotonicNoLmDecoderFactory implements DecoderFactory
-{
+public class MonotonicNoLmDecoderFactory implements DecoderFactory {
 
-	public Decoder newDecoder(PhraseTable tm, NgramLanguageModel lm, DistortionModel dm) {
+   public Decoder newDecoder(PhraseTable tm, NgramLanguageModel lm,
+         DistortionModel dm) {
 
-		 return null; 
+      return new MonotonicNoLmDecoder(tm, lm, dm);
 
-	}
+   }
 
 }

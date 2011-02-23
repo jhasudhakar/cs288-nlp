@@ -11,7 +11,7 @@ public class MonotonicWithLmDecoderFactory implements DecoderFactory
 
 	public Decoder newDecoder(PhraseTable tm, NgramLanguageModel lm, DistortionModel dm) {
 
-		 return null; 
+	   return new MonotonicWithLmDecoder(tm, lm, dm);
 
 	}
 
