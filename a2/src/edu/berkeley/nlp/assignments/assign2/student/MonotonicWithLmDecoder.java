@@ -12,8 +12,6 @@ import edu.berkeley.nlp.mt.phrasetable.PhraseTable;
 import edu.berkeley.nlp.mt.phrasetable.PhraseTableForSentence;
 import edu.berkeley.nlp.mt.phrasetable.ScoredPhrasePairForSentence;
 import edu.berkeley.nlp.util.FastPriorityQueue;
-import edu.berkeley.nlp.util.GeneralPriorityQueue;
-import edu.berkeley.nlp.util.PriorityQueue;
 
 /**
  * Monotonic beam-search decoder with trigram language model.
@@ -23,7 +21,7 @@ import edu.berkeley.nlp.util.PriorityQueue;
  */
 public class MonotonicWithLmDecoder implements Decoder {
   
-  public static final int priorityQueueSize = 2000;
+  public static final int priorityQueueSize = 500;
 
   public class BeamSearchOption {
     public int[] lmContextBuf;
@@ -71,9 +69,9 @@ public class MonotonicWithLmDecoder implements Decoder {
 
     // Initialize the priority queues.
     @SuppressWarnings("unchecked")
-    GeneralPriorityQueue<BeamSearchOption> beams[] = new GeneralPriorityQueue[length + 1];
+    FastPriorityQueue<BeamSearchOption> beams[] = new FastPriorityQueue[length + 1];
     for (int start = 0; start <= length; start++) {
-      beams[start] = new GeneralPriorityQueue<BeamSearchOption>();
+      beams[start] = new FastPriorityQueue<BeamSearchOption>();
     }
 
     // Add search beam's root node.
@@ -165,8 +163,8 @@ public class MonotonicWithLmDecoder implements Decoder {
               }
               
               newOption.score = score;
-              //beams[end].setPriority(newOption, score);
-              beams[end].relaxPriority(newOption, score);
+              beams[end].setPriority(newOption, score);
+              //beams[end].relaxPriority(newOption, score);
             }
           }
         }
