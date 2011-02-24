@@ -21,7 +21,18 @@ import edu.berkeley.nlp.util.FastPriorityQueue;
  */
 public class MonotonicWithLmDecoder implements Decoder {
   
-  public static final int priorityQueueSize = 500;
+  /*
+   * 1, 3.052s, 25.887, -3933.7543302336053
+   * 10, 4.475s, 25.833, -3911.2285924622297
+   * 40, 8.328s, 25.838, -3908.7408309736734
+   * 50, 10.508s, 25.761, -3913.1241259627673
+   * 100, 18.319s, 25.758, -3913.1237282543516
+   * 250, 42.626s, 25.798, -3922.883984979305
+   * 500, 86.511s, 25.746, -3925.8376456715787
+   * 1000, 167.871s, 25.746, -3925.8376456715787
+   */
+
+  public static final int priorityQueueSize = 10;
 
   public class BeamSearchOption {
     public int[] lmContextBuf;
@@ -179,17 +190,6 @@ public class MonotonicWithLmDecoder implements Decoder {
       ret.add(0, option.phrasePair);
       option = option.prev;
     } while (option.prev != null);
-    
-
-    // double explicitScore = Decoder.StaticMethods.scoreHypothesis(ret, lm,
-    // dm);
-    // if (Math.abs(explicitScore - totalScore) > 1e-4) {
-    // System.err.println("Warning: score calculated during decoding ("
-    // + totalScore + ") does not match explicit scoring ("
-    // + explicitScore + ")");
-    // }
-    
-    //System.exit(0);
     
     return ret;
   }

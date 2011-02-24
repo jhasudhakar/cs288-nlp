@@ -20,7 +20,12 @@ import edu.berkeley.nlp.util.FastPriorityQueue;
  */
 public class DistortingWithLmDecoder implements Decoder {
   
-  public static final int priorityQueueSize = 100;
+  /**
+   * 50, 429.148s, 24.212, -3371.0790130316364
+   *
+   */
+  
+  public static final int priorityQueueSize = 50;
 
   public class BeamSearchOption {
     public int[] lmContextBuf;
