@@ -8,7 +8,7 @@ public class Model1AlignerFactory implements WordAlignerFactory
 {
 
 	public WordAligner newAligner(Iterable<SentencePair> trainingData) {
-		 return null;
+	   return new Model1Aligner(trainingData);
 	}
 
 }

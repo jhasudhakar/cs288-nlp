@@ -10,6 +10,16 @@ import edu.berkeley.nlp.util.StringIndexer;
 /**
  * Heuristic-based word alignment.
  * 
+ * max train = 1,000,000
+ * Precision: 0.5230769230769231
+ * Recall: 0.5564635958395245
+ * AER: 0.46473141616928926
+ * 
+ * max train = 400,000
+ * Precision: 0.4891737891737892
+ * Recall: 0.5141158989598811
+ * AER: 0.5017182130584192
+ * 
  * max train = 100,000
  * Precision: 0.4346153846153846
  * Recall: 0.45641406636948983
@@ -58,7 +68,7 @@ public class HeuristicAligner implements WordAligner {
     * 100000   | 25894     | 33709
     */
    
-   protected static final int MAX_SENTENCE_LEN = 255;
+   protected static final int MAX_SENTENCE_LEN = 1024;
    
    StringIndexer frenchWordIndexer = new StringIndexer();
    StringIndexer englishWordIndexer = EnglishWordIndexer.getIndexer();
@@ -87,8 +97,9 @@ public class HeuristicAligner implements WordAligner {
 
          String englishWord = sentencePair.englishWords.get(ei);
          if (englishWordIndexer.contains(englishWord)) {
-            // Only align if we have seen the English words before. Now find the
-            // French word that generates the highest c(e, f) / (c(e)*c(f)).
+            // Only align if we have seen the English words before. Now find
+            // the French word that generates the highest
+            // c(e, f) / (c(e)*c(f)).
             int e = englishWordIndexer.addAndGetIndex(englishWord);
             int bestFrenchWordPos = -1;
             double bestFrenchWordValue = 0.0;
