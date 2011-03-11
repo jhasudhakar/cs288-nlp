@@ -9,11 +9,13 @@ import edu.berkeley.nlp.util.CounterMap;
 import edu.berkeley.nlp.util.StringIndexer;
 
 /**
- * IBM Model 1 Alignment.
+ * IBM Model 1 Alignment using soft EM.
+ * 
+ * The caller must call train() to train the model before using it.
  * 
  * @author rxin
  */
-public class Model1Aligner implements WordAligner {
+public class Model1HardEmAligner implements WordAligner {
    
    /**
     * Max number of words for a sentence. This is used to initialize
@@ -29,41 +31,38 @@ public class Model1Aligner implements WordAligner {
    /**
     * The distortion likelihood for aligning a word to NULL.
     */
-   protected static final double nullDistortionLikelihood = 0.05;
+   protected double nullDistortionLikelihood = 0.25;
    
    /**
     * French word indexer that maps a French word (java string) to an integer.
     */
-   StringIndexer frenchWordIndexer = new StringIndexer();
+   protected StringIndexer frenchWordIndexer = new StringIndexer();
    
    
    /**
     * English word indexer that maps an English word (java string) to an
     * integer.
     */
-   StringIndexer englishWordIndexer = EnglishWordIndexer.getIndexer();
+   protected StringIndexer englishWordIndexer = EnglishWordIndexer.getIndexer();
 
    
    /**
-    * Number of times a translation <French word, English word> pair occurs.
-    * We can achieve better locality if French word goes first (since English
-    * is usually the inner loop in this aligner).
+    * Number of times a translation <French word, English word> pair occurs. We
+    * can achieve better locality if French word goes first (since English is
+    * usually the inner loop in this aligner).
     */
-   CounterMap<Integer, Integer> pairCounters = new CounterMap<Integer, Integer>();
+   protected CounterMap<Integer, Integer> pairCounters =
+      new CounterMap<Integer, Integer>();
    
-   private int[] englishIndexBuffer = new int[MAX_SENTENCE_LEN];
-   private int[] frenchIndexBuffer = new int[MAX_SENTENCE_LEN];
-   
-   public Model1Aligner(Iterable<SentencePair> trainingData) {      
-      train(trainingData);
-   }
+   protected int[] englishIndexBuffer = new int[MAX_SENTENCE_LEN];
+   protected int[] frenchIndexBuffer = new int[MAX_SENTENCE_LEN];
    
    /* (non-Javadoc)
     * @see edu.berkeley.nlp.mt.WordAligner#alignSentencePair(edu.berkeley.nlp.mt.SentencePair)
     */
    @Override
    public Alignment alignSentencePair(SentencePair sentencePair) {
-      int[] a = align(sentencePair, false);
+      int[] a = align(sentencePair);
       Alignment alignment = new Alignment();
       for (int i = 0; i < a.length; i++) {
          if (a[i] != -1) {
@@ -80,11 +79,17 @@ public class Model1Aligner implements WordAligner {
     * @param numEnglishWords
     * @return distortion likelihood, 0.8 / (|E| + 1).
     */
-   private double distortionProbability(int numEnglishWords) {
+   protected double distortionProbability(int numEnglishWords) {
       return (1.0 - nullDistortionLikelihood) / (numEnglishWords + 1);
    }
    
-   private int[] align(SentencePair sentencePair, boolean isFirstIteration) {
+   /**
+    * Aligns a sentence pair. This assumes pairCounters has been initialized.
+    * 
+    * @param sentencePair
+    * @return
+    */
+   protected int[] align(SentencePair sentencePair) {
       int numEnglishWords = sentencePair.englishWords.size();
       int numFrenchWords = sentencePair.frenchWords.size();
       int[] alignments = new int[numFrenchWords];
@@ -105,12 +110,16 @@ public class Model1Aligner implements WordAligner {
 
          double bestProbability = nullDistortionLikelihood
                * pairCounters.getCount(fWordIndex, -1);
+         alignments[fi] = -1;
+         //System.out.println(fi + ",-1: " + bestProbability);
          
          // Find the most likely alignment.
          for (int ei = 0; ei < numEnglishWords; ei++) {
             int eWordIndex = englishIndexBuffer[ei];
             double probability = distortionProbability(numEnglishWords)
                   * pairCounters.getCount(fWordIndex, eWordIndex);
+            
+            //System.out.println(fi + "," + ei + ": " + probability);
             
             if (probability > bestProbability) {
                bestProbability = probability;
@@ -133,8 +142,7 @@ public class Model1Aligner implements WordAligner {
     * 
     * @param trainingData
     */
-   @SuppressWarnings("unused")
-   private void initializePairCountersBaseline(
+   protected void initializePairCountersBaseline(
          Iterable<SentencePair> trainingData) {
       
       pairCounters = new CounterMap<Integer, Integer>();
@@ -202,13 +210,12 @@ public class Model1Aligner implements WordAligner {
     * 
     * @param trainingData
     */
-   @SuppressWarnings("unused")
-   private void initializePairCounters(Iterable<SentencePair> trainingData) {
+   protected void initializePairCounters(Iterable<SentencePair> trainingData) {
       
       pairCounters = new CounterMap<Integer, Integer>();
       
       DynamicIntArray englishWordCounter = new DynamicIntArray(1000);
-      DynamicIntArray foreignWordCounter = new DynamicIntArray(1000);
+      DynamicIntArray frenchWordCounter = new DynamicIntArray(1000);
       
       int sentenceCount = 0;
       
@@ -237,7 +244,7 @@ public class Model1Aligner implements WordAligner {
             frenchIndexBuffer[i] = fIndex;
             
             // Increase the French word count.
-            foreignWordCounter.inc(fIndex, 1);
+            frenchWordCounter.inc(fIndex, 1);
          }
          
          // Increment the frequency counts for <e, f> pairs.
@@ -256,7 +263,7 @@ public class Model1Aligner implements WordAligner {
          for (Integer e : fCounter.keySet()) {
             double count = pairCounters.getCount(f, e);
             pairCounters.setCount(f, e,
-                count / foreignWordCounter.get(f) / englishWordCounter.get(e));
+                count / frenchWordCounter.get(f) / englishWordCounter.get(e));
          }
          
          // Also set the count for NULL.
@@ -268,7 +275,7 @@ public class Model1Aligner implements WordAligner {
     * Train the alignment.
     * @param trainingData
     */
-   private void train(Iterable<SentencePair> trainingData) {
+   public void train(Iterable<SentencePair> trainingData) {
       
       System.out.println("Initializing pair counters ...");
       initializePairCounters(trainingData);
@@ -281,16 +288,34 @@ public class Model1Aligner implements WordAligner {
          CounterMap<Integer, Integer> newPairCounters =
             new CounterMap<Integer, Integer>();
          
+         Counter<Integer> englishProb = new Counter<Integer>();
+         
          // E step. Find alignment of the highest probability.
          // M step. Update the translation probability (pairCount).
          for (SentencePair sentencePair : trainingData) {
             
-            int[] a = align(sentencePair, emIterNum == 0);
+            int[] a = align(sentencePair);
             
             int numFrenchWords = sentencePair.frenchWords.size();
             for (int fi = 0; fi < numFrenchWords; fi++) {
-               newPairCounters.incrementCount(frenchIndexBuffer[fi],
-                     englishIndexBuffer[a[fi]], 1);
+               if (a[fi] == -1) {
+                  newPairCounters.incrementCount(frenchIndexBuffer[fi],
+                        -1, 1);
+                  englishProb.incrementCount(-1, 1);
+               } else {
+                  newPairCounters.incrementCount(frenchIndexBuffer[fi],
+                        englishIndexBuffer[a[fi]], 1);
+                  englishProb.incrementCount(englishIndexBuffer[a[fi]], 1);
+               }
+            }
+         }
+         
+         // Normalize the counts.
+         for (Integer f : newPairCounters.keySet()) {
+            Counter<Integer> fCounter = newPairCounters.getCounter(f);
+            for (Integer e : fCounter.keySet()) {
+               double count = newPairCounters.getCount(f, e);
+               newPairCounters.setCount(f, e, count / englishProb.getCount(e));
             }
          }
          
