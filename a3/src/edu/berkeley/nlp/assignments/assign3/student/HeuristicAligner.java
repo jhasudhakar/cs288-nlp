@@ -1,11 +1,7 @@
 package edu.berkeley.nlp.assignments.assign3.student;
 
-import edu.berkeley.nlp.langmodel.EnglishWordIndexer;
 import edu.berkeley.nlp.mt.Alignment;
 import edu.berkeley.nlp.mt.SentencePair;
-import edu.berkeley.nlp.mt.WordAligner;
-import edu.berkeley.nlp.util.CounterMap;
-import edu.berkeley.nlp.util.StringIndexer;
 
 /**
  * Heuristic-based word alignment.
@@ -58,7 +54,7 @@ import edu.berkeley.nlp.util.StringIndexer;
  * @author rxin
  *
  */
-public class HeuristicAligner implements WordAligner {
+public class HeuristicAligner extends AlignerBase {
    
    /*
     * maxTrain | # English | # French
@@ -67,20 +63,6 @@ public class HeuristicAligner implements WordAligner {
     * 10000    | 10363     | 12957
     * 100000   | 25894     | 33709
     */
-   
-   protected static final int MAX_SENTENCE_LEN = 1024;
-   
-   StringIndexer frenchWordIndexer = new StringIndexer();
-   StringIndexer englishWordIndexer = EnglishWordIndexer.getIndexer();
-
-   DynamicIntArray englishWordCounter = new DynamicIntArray(1000);
-   DynamicIntArray foreignWordCounter = new DynamicIntArray(1000);
-
-   CounterMap<Integer, Integer> pairCounters = new CounterMap<Integer, Integer>();
-   
-   public HeuristicAligner(Iterable<SentencePair> trainingData) {      
-      train(trainingData);
-   }
    
    
    /* (non-Javadoc)
@@ -129,7 +111,7 @@ public class HeuristicAligner implements WordAligner {
     * Train the alignment.
     * @param trainingData
     */
-   private void train(Iterable<SentencePair> trainingData) {
+   public void train(Iterable<SentencePair> trainingData) {
       
       System.out.println("Training starts ...............");
 

@@ -1,7 +1,6 @@
 package edu.berkeley.nlp.assignments.assign3.student;
 
 import edu.berkeley.nlp.mt.SentencePair;
-import edu.berkeley.nlp.mt.WordAligner;
 import edu.berkeley.nlp.util.Counter;
 import edu.berkeley.nlp.util.CounterMap;
 
@@ -13,8 +12,7 @@ import edu.berkeley.nlp.util.CounterMap;
  * 
  * @author rxin
  */
-public class Model1SoftEmWeirdAligner extends Model1HardEmAligner implements
-      WordAligner {
+public class Model1SoftEmWeirdAligner extends Model1HardEmAligner {
 
    /**
     * Number of EM iterations to run.
@@ -23,13 +21,13 @@ public class Model1SoftEmWeirdAligner extends Model1HardEmAligner implements
    
    protected static final double weirdNullDistortionLikelihood = 0.95;
 
-   /**
-    * Train the alignment.
-    * @param trainingData
+   /* (non-Javadoc)
+    * @see edu.berkeley.nlp.assignments.assign3.student.Model1HardEmAligner#train(java.lang.Iterable)
     */
    public void train(Iterable<SentencePair> trainingData) {
       
-      System.out.println("Initializing pair counters ...");
+      System.out.println(
+            "(Soft Weird EM Model 1) Initializing pair counters ...");
       initializePairCounters(trainingData);
       //initializePairCountersBaseline(trainingData);
       

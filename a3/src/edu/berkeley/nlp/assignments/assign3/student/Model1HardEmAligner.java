@@ -1,12 +1,9 @@
 package edu.berkeley.nlp.assignments.assign3.student;
 
-import edu.berkeley.nlp.langmodel.EnglishWordIndexer;
 import edu.berkeley.nlp.mt.Alignment;
 import edu.berkeley.nlp.mt.SentencePair;
-import edu.berkeley.nlp.mt.WordAligner;
 import edu.berkeley.nlp.util.Counter;
 import edu.berkeley.nlp.util.CounterMap;
-import edu.berkeley.nlp.util.StringIndexer;
 
 /**
  * IBM Model 1 Alignment using soft EM.
@@ -15,13 +12,7 @@ import edu.berkeley.nlp.util.StringIndexer;
  * 
  * @author rxin
  */
-public class Model1HardEmAligner implements WordAligner {
-   
-   /**
-    * Max number of words for a sentence. This is used to initialize
-    * frenchWordIndexer and englishWordIndexer buffers.
-    */
-   protected static final int MAX_SENTENCE_LEN = 1024;
+public class Model1HardEmAligner extends AlignerBase {
    
    /**
     * Number of EM iterations to run.
@@ -32,27 +23,6 @@ public class Model1HardEmAligner implements WordAligner {
     * The distortion likelihood for aligning a word to NULL.
     */
    protected double nullDistortionLikelihood = 0.25;
-   
-   /**
-    * French word indexer that maps a French word (java string) to an integer.
-    */
-   protected StringIndexer frenchWordIndexer = new StringIndexer();
-   
-   
-   /**
-    * English word indexer that maps an English word (java string) to an
-    * integer.
-    */
-   protected StringIndexer englishWordIndexer = EnglishWordIndexer.getIndexer();
-
-   
-   /**
-    * Number of times a translation <French word, English word> pair occurs. We
-    * can achieve better locality if French word goes first (since English is
-    * usually the inner loop in this aligner).
-    */
-   protected CounterMap<Integer, Integer> pairCounters =
-      new CounterMap<Integer, Integer>();
    
    protected int[] englishIndexBuffer = new int[MAX_SENTENCE_LEN];
    protected int[] frenchIndexBuffer = new int[MAX_SENTENCE_LEN];
@@ -271,9 +241,8 @@ public class Model1HardEmAligner implements WordAligner {
       }
    }
    
-   /**
-    * Train the alignment.
-    * @param trainingData
+   /* (non-Javadoc)
+    * @see edu.berkeley.nlp.assignments.assign3.student.AlignerBase#train(java.lang.Iterable)
     */
    public void train(Iterable<SentencePair> trainingData) {
       
