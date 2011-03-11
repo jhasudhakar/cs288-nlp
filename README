@@ -12,9 +12,11 @@ Assignment 2: Phrase-Based Decoding using 4 different models.
  - beam search that permits limited distortion
  - last model unknown yet
 
-Assignment 3:
+Assignment 3: Word-based alignment.
+ - heuristic aligner
+ - IBM model 1 aligner with hard EM and soft EM implementations
+ - HMM aligner
 
 Assignment 4:
 
-Assignment 5:
 
