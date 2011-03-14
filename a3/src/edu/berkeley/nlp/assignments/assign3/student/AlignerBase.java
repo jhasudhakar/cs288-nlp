@@ -32,9 +32,7 @@ public abstract class AlignerBase implements WordAligner {
    protected DynamicIntArray foreignWordCounter = new DynamicIntArray(1000);
    
    /**
-    * Translation probability for <French word, English word> pair occurs. We
-    * can achieve better locality if French word goes first (since English is
-    * usually the inner loop in this aligner).
+    * Translation probability for <English word, French word> pair occurs.
     */
    protected CounterMap<Integer, Integer> pairCounters =
       new CounterMap<Integer, Integer>();

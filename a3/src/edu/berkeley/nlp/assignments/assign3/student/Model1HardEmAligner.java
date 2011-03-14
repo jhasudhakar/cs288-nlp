@@ -17,12 +17,12 @@ public class Model1HardEmAligner extends AlignerBase {
    /**
     * Number of EM iterations to run.
     */
-   protected static final int NUM_EM_ITERATIONS = 10;
+   protected static final int NUM_EM_ITERATIONS = 5;
    
    /**
     * The distortion likelihood for aligning a word to NULL.
     */
-   protected double nullDistortionLikelihood = 0.25;
+   protected double nullDistortionLikelihood = 0.2;
    
    protected int[] englishIndexBuffer = new int[MAX_SENTENCE_LEN];
    protected int[] frenchIndexBuffer = new int[MAX_SENTENCE_LEN];
@@ -79,7 +79,7 @@ public class Model1HardEmAligner extends AlignerBase {
          frenchIndexBuffer[fi] = fWordIndex;
 
          double bestProbability = nullDistortionLikelihood
-               * pairCounters.getCount(fWordIndex, -1);
+               * pairCounters.getCount(-1, fWordIndex);
          alignments[fi] = -1;
          //System.out.println(fi + ",-1: " + bestProbability);
          
@@ -87,7 +87,7 @@ public class Model1HardEmAligner extends AlignerBase {
          for (int ei = 0; ei < numEnglishWords; ei++) {
             int eWordIndex = englishIndexBuffer[ei];
             double probability = distortionProbability(numEnglishWords)
-                  * pairCounters.getCount(fWordIndex, eWordIndex);
+                  * pairCounters.getCount(eWordIndex, fWordIndex);
             
             //System.out.println(fi + "," + ei + ": " + probability);
             
@@ -99,70 +99,6 @@ public class Model1HardEmAligner extends AlignerBase {
       }
       
       return alignments;
-   }
-   
-   /**
-    * Generate the initial word pair counts (translation probability). This
-    * function uses the baseline aligner to set the initial probability.
-    * 
-    * The reason we don't use a simple uniform distribution for initial
-    * probability is because if we do that, most words will be aligned to the
-    * first word in the sentence, which happen to be "the", and converge at
-    * that local optimum.
-    * 
-    * @param trainingData
-    */
-   protected void initializePairCountersBaseline(
-         Iterable<SentencePair> trainingData) {
-      
-      pairCounters = new CounterMap<Integer, Integer>();
-      
-      DynamicIntArray englishWordCounter = new DynamicIntArray(1000);
-      DynamicIntArray frenchWordCounter = new DynamicIntArray(1000);
-      
-      int nullCount = 0;
-      int sentenceCount = 0;
-      
-      // Counting.
-      for (SentencePair pair : trainingData) {
-         
-         sentenceCount ++;
-         
-         int numFrenchWords = pair.frenchWords.size();
-         int numEnglishWords = pair.englishWords.size();
-         
-         for (int fi = 0; fi < numFrenchWords; fi++) {
-            int fIndex = frenchWordIndexer.addAndGetIndex(
-                  pair.frenchWords.get(fi));
-            
-            frenchWordCounter.inc(fIndex, 1);
-            
-            if (fi < numEnglishWords) {
-               int eIndex = englishWordIndexer.addAndGetIndex(
-                     pair.englishWords.get(fi));
-               englishWordCounter.inc(eIndex, 1);
-               pairCounters.incrementCount(fIndex, eIndex, 1);
-            } else {
-               nullCount++;
-               pairCounters.incrementCount(fIndex, -1, 1);
-            }
-         }
-      }
-      
-      // Normalize the counts.
-      for (Integer f : pairCounters.keySet()) {
-         Counter<Integer> fCounter = pairCounters.getCounter(f);
-         for (Integer e : fCounter.keySet()) {
-            double count = pairCounters.getCount(f, e);
-            if (e == -1) {
-               pairCounters.setCount(f, e,
-                   count / frenchWordCounter.get(f) / nullCount);
-            } else {
-               pairCounters.setCount(f, e, count / frenchWordCounter.get(f)
-                     / englishWordCounter.get(e));
-            }
-         }
-      }
    }
    
    /**
@@ -184,9 +120,6 @@ public class Model1HardEmAligner extends AlignerBase {
       
       pairCounters = new CounterMap<Integer, Integer>();
       
-      DynamicIntArray englishWordCounter = new DynamicIntArray(1000);
-      DynamicIntArray frenchWordCounter = new DynamicIntArray(1000);
-      
       int sentenceCount = 0;
       
       for (SentencePair pair : trainingData) {
@@ -203,42 +136,31 @@ public class Model1HardEmAligner extends AlignerBase {
             String e = pair.englishWords.get(i);
             int eIndex = englishWordIndexer.addAndGetIndex(e);
             englishIndexBuffer[i] = eIndex;
-            
-            // Increase the English word count.
-            englishWordCounter.inc(eIndex, 1);
          }
+         
+         // NULL word.
+         englishIndexBuffer[numEnglishWords] = -1;
          
          for (int i = 0; i < numFrenchWords; i++) {
             String f = pair.frenchWords.get(i);
             int fIndex = frenchWordIndexer.addAndGetIndex(f);
             frenchIndexBuffer[i] = fIndex;
-            
-            // Increase the French word count.
-            frenchWordCounter.inc(fIndex, 1);
          }
          
          // Increment the frequency counts for <e, f> pairs.
-         for (int ei = 0; ei < numEnglishWords; ei++) {
-            for (int fi = 0; fi < numFrenchWords; fi++) {
+         for (int fi = 0; fi < numFrenchWords; fi++) {
+            int f = frenchIndexBuffer[fi];
+            pairCounters.setCount(-1, f, 1);
+            //for (int ei = 0; ei <= numEnglishWords; ei++) {
+            for (int ei = 0; ei < numEnglishWords; ei++) {
                int e = englishIndexBuffer[ei];
-               int f = frenchIndexBuffer[fi];
-               pairCounters.incrementCount(f, e, 1);
+               pairCounters.incrementCount(e, f, 1);
             }
          }
       }
       
       // Normalize the counts.
-      for (Integer f : pairCounters.keySet()) {
-         Counter<Integer> fCounter = pairCounters.getCounter(f);
-         for (Integer e : fCounter.keySet()) {
-            double count = pairCounters.getCount(f, e);
-            pairCounters.setCount(f, e,
-                count / frenchWordCounter.get(f) / englishWordCounter.get(e));
-         }
-         
-         // Also set the count for NULL.
-         pairCounters.setCount(f, -1, 1.0 / sentenceCount);
-      }
+      pairCounters.normalize();
    }
    
    /* (non-Javadoc)
@@ -268,25 +190,18 @@ public class Model1HardEmAligner extends AlignerBase {
             int numFrenchWords = sentencePair.frenchWords.size();
             for (int fi = 0; fi < numFrenchWords; fi++) {
                if (a[fi] == -1) {
-                  newPairCounters.incrementCount(frenchIndexBuffer[fi],
-                        -1, 1);
+                  newPairCounters.incrementCount(-1, frenchIndexBuffer[fi], 1);
                   englishProb.incrementCount(-1, 1);
                } else {
-                  newPairCounters.incrementCount(frenchIndexBuffer[fi],
-                        englishIndexBuffer[a[fi]], 1);
+                  newPairCounters.incrementCount(englishIndexBuffer[a[fi]],
+                        frenchIndexBuffer[fi], 1);
                   englishProb.incrementCount(englishIndexBuffer[a[fi]], 1);
                }
             }
          }
          
          // Normalize the counts.
-         for (Integer f : newPairCounters.keySet()) {
-            Counter<Integer> fCounter = newPairCounters.getCounter(f);
-            for (Integer e : fCounter.keySet()) {
-               double count = newPairCounters.getCount(f, e);
-               newPairCounters.setCount(f, e, count / englishProb.getCount(e));
-            }
-         }
+         newPairCounters.normalize();
          
          // Switch newPairCounters and pairCounters ...
          pairCounters = newPairCounters;

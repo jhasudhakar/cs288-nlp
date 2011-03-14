@@ -72,7 +72,7 @@ public class Model1SoftEmAligner extends Model1HardEmAligner {
                for (int ei = 0; ei < numEnglishWords; ei++) {
                   double probability = distortionProbability(numEnglishWords)
                         * pairCounters.getCount(
-                              fWordIndex, englishIndexBuffer[ei]);
+                              englishIndexBuffer[ei], fWordIndex);
                   
                   alignmentProbability[ei] = probability;
                   sumProbability += probability;
@@ -80,14 +80,14 @@ public class Model1SoftEmAligner extends Model1HardEmAligner {
                
                // Set the alignment probability for this French word and NULL.
                alignmentProbability[numEnglishWords] = nullDistortionLikelihood
-                  * pairCounters.getCount(fWordIndex, -1);
+                  * pairCounters.getCount(-1, fWordIndex);
                sumProbability += alignmentProbability[numEnglishWords];
 
                // Normalize the alignment probability and update the pair
                // counts.
                for (int ei = 0; ei <= numEnglishWords; ei++) {
-                  newPairCounters.incrementCount(fWordIndex,
-                        englishIndexBuffer[ei],
+                  newPairCounters.incrementCount(englishIndexBuffer[ei],
+                        fWordIndex,
                         alignmentProbability[ei] / sumProbability);
                   englishProb.incrementCount(englishIndexBuffer[ei],
                         alignmentProbability[ei] / sumProbability);
@@ -96,13 +96,7 @@ public class Model1SoftEmAligner extends Model1HardEmAligner {
          }
          
          // Normalize the counts.
-         for (Integer f : newPairCounters.keySet()) {
-            Counter<Integer> fCounter = newPairCounters.getCounter(f);
-            for (Integer e : fCounter.keySet()) {
-               double count = newPairCounters.getCount(f, e);
-               newPairCounters.setCount(f, e, count / englishProb.getCount(e));
-            }
-         }
+         newPairCounters.normalize();
          
          // Switch newPairCounters and pairCounters ...
          pairCounters = newPairCounters;

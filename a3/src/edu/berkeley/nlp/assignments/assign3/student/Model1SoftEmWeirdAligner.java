@@ -1,7 +1,6 @@
 package edu.berkeley.nlp.assignments.assign3.student;
 
 import edu.berkeley.nlp.mt.SentencePair;
-import edu.berkeley.nlp.util.Counter;
 import edu.berkeley.nlp.util.CounterMap;
 
 /**
@@ -42,8 +41,6 @@ public class Model1SoftEmWeirdAligner extends Model1HardEmAligner {
          CounterMap<Integer, Integer> newPairCounters =
             new CounterMap<Integer, Integer>();
          
-         Counter<Integer> englishProb = new Counter<Integer>();
-         
          // E step. Align the sentence pairs using the existing translation
          // probability (pairCounters).
          // M step. Update the translation probability.
@@ -72,7 +69,7 @@ public class Model1SoftEmWeirdAligner extends Model1HardEmAligner {
                for (int ei = 0; ei < numEnglishWords; ei++) {
                   double probability = distortionProbability(numEnglishWords)
                         * pairCounters.getCount(
-                              fWordIndex, englishIndexBuffer[ei]);
+                              englishIndexBuffer[ei], fWordIndex);
                   
                   alignmentProbability[ei] = probability;
                   sumProbability += probability;
@@ -81,29 +78,21 @@ public class Model1SoftEmWeirdAligner extends Model1HardEmAligner {
                // Set the alignment probability for this French word and NULL.
                alignmentProbability[numEnglishWords] = 
                   weirdNullDistortionLikelihood
-                  * pairCounters.getCount(fWordIndex, -1);
+                  * pairCounters.getCount(-1, fWordIndex);
                sumProbability += alignmentProbability[numEnglishWords];
 
                // Normalize the alignment probability and update the pair
                // counts.
                for (int ei = 0; ei <= numEnglishWords; ei++) {
-                  newPairCounters.incrementCount(fWordIndex,
-                        englishIndexBuffer[ei],
-                        alignmentProbability[ei] / sumProbability);
-                  englishProb.incrementCount(englishIndexBuffer[ei],
+                  newPairCounters.incrementCount(englishIndexBuffer[ei],
+                        fWordIndex,
                         alignmentProbability[ei] / sumProbability);
                }
             }
          }
          
          // Normalize the counts.
-         for (Integer f : newPairCounters.keySet()) {
-            Counter<Integer> fCounter = newPairCounters.getCounter(f);
-            for (Integer e : fCounter.keySet()) {
-               double count = newPairCounters.getCount(f, e);
-               newPairCounters.setCount(f, e, count / englishProb.getCount(e));
-            }
-         }
+         newPairCounters.normalize();
          
          // Switch newPairCounters and pairCounters ...
          pairCounters = newPairCounters;
