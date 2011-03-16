@@ -14,12 +14,8 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{abstract}
-
+We have implemented three models for word alignment in statistical translation: a naive heuristic model of choice, the IBM Model 1, and the HMM model proposed by Vogel. We examine algorithmic trade-offs in implementation and assess the three models using the Alignment Error Rate and the BLEU score produced by the translation. The two statistical models produce better results than the heuristic model, and the HMM model produces the best AER and BLEU score.
 \end{abstract}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Introduction}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -50,7 +46,9 @@ In general, the \emph{Soft EM} algorithm is used to compute this model iterative
 
 In \emph{Hard EM}, we do not do partial counts of probability. Rather, we pick the pair of French word and English word that generates the highest likelihood, and increment the posterior count by one for that pair. Hard EM uses less memory due to the more sparse translation matrix, and also converges faster. It however produces lower quality than Soft EM because of the information loss between iterations.
 
-When implementing Soft EM, we accidentally introduced a bug in the alignment probability model that slightly improved the quality of the Soft EM algorithm. In this \emph{Weird Soft EM} model, null likelihood is inflated during learning phase. But once learning is completed, the null likelihood returns to its original value. In Section \label{sec:exp}, we compare the quality of alignments produced by these three variants of IBM Model 1.
+When implementing Soft EM, we accidentally introduced a bug in the alignment probability model that slightly improved the quality of the Soft EM algorithm. In this \emph{Weird Soft EM} model, null likelihood is inflated during learning phase. But once learning is completed, the null likelihood returns to its original value.
+
+In Section \ref{sec:exp}, we compare the quality of alignments produced by these three variants of IBM Model 1.
 
 
 \subsection{HMM Model}
@@ -125,27 +123,77 @@ We also studied the effect of the null alignment likelihood in the context of IB
 Figure \ref{fig:null} reports the results. Although we were able to find a sweet spot at 0.28, the null likelihood has a rather small effect on the AER. It merely affects AER by less than one percent.
 
 
-\subsection{Alignment and Translation Results}
-
+\subsection{Alignment Quality and Error Analysis}
 
 \begin{figure}[h*]
 \centering
 \subfigure[]{
-	\includegraphics[height=0.47\linewidth, angle=-90]{graphs/perf_aer.eps}
+	\includegraphics[height=0.7\linewidth, angle=-90]{graphs/perf_aer.eps}
 	\label{fig:aer}
 }
 \subfigure[.]{
-	\includegraphics[height=0.47\linewidth, angle=-90]{graphs/perf_bleu.eps}
+	\includegraphics[height=0.7\linewidth, angle=-90]{graphs/perf_bleu.eps}
 	\label{fig:bleu}
 }
 \label{fig:perf}
-\caption{The effect of corpus size on the performance of models.}
+\caption{Alignment quality of three models.}
 \end{figure}
+
+We ran the three models (Heuristic, IBM Model 1 with Weird Soft EM, and HMM) on the corpus up to 1 million sentence pairs. The general trend for all models is that both AER and BLEU score improves significantly as we use a larger corpus. This confirms the hypothesis in \cite{data-effect}. Even in the simple Heuristic model, AER was reduced to 46\% and BLEU was at 21.2 with a million sentences. IBM Model 1 produced an AER of 23\% and BLEU score of 25.8. The HMM model performed the best, with an AER of 16\% and BLEU of 28.8.
+
+Having examined the alignment output by each of the model, we outline the weakness of the models here.
+
+The Heuristic model aligns English words to French words. Aside from the fact that the Heuristic model is naive, many French words are not aligned at all to anything because the French sentences are in general longer than the English translations.
+
+For IBM Model 1, we observe the well-known problem that French words are more likely to be aligned to rare English words. As shown in Figure \ref{fig:model1align}, four French words are aligned to the English word ``Canadair''. 
+
+\begin{figure}[h]
+\centering
+{\tiny
+\begin{verbatim}
+	[#]                                             | cela
+	   ( )   ( )                      #             | �quivaut
+	      ( )    #                                  | �
+	      (#)                                       | peu
+	      (#)                                       | pr�s
+	            [#]                                 | �
+	               [ ]                              | les
+	                     [#]                        | 440
+	                        [#]                     | millions
+	                  ( )   ( )                     | de
+	                  [#]                           | dollars
+	                           [ ]    #             | vers�s
+	             #                [ ]               | �
+	                                 [#]            | Canadair
+	                                    (#)         | en
+	                #                   ( )         | le
+	                                  # ( )         | espace
+	                                    ( )         | de
+	                                       [#]      | deux
+	                                          [#]   | ans
+	                                             [#]| .
+	------------------------------------------------'
+	 t  i  r  e  t  t  $  4  m  p  t  C  i  t  y  . 
+	 h  s  o  q  o  h     4  i  a  o  a  n  w  e    
+	 a     u  u     e     0  l  i     n     o  a    
+	 t     g  a              l  d     a        r    
+	       h  l              i        d        s    
+	       l                 o        a             
+	       y                 n        i             
+	                                  r
+\end{verbatim}
+}
+\label{fig:model1align}
+\caption{An example alignment for IBM Model 1.}
+\end{figure}
+
+For both the HMM model and the IBM model, we are doing one-way alignment from French to English. This rules out the possibility that multiple English words being aligned to a single French word. To overcome this problem, Liang proposed in \cite{align-agreement} using an agreement model that does bi-directional alignment based on two one-way alignments. 
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Conclusion}
+In this assignment, we have implemented three word-based alignment models: the Heuristic model, IBM Model 1, and HMM model. In validation, we found that the size of the training corpus plays a vital role in the AER and BLEU score. The IBM Model 1 produces better alignment results and translation results than the Heuristic model, but it suffers from the rare word alignment problem. The HMM model produces the best result among the three. To further improve the alignment problem, bi-directional alignment should be considered. In addition, it might help to alignment techniques that go beyond the scope of words, e.g. phrase-based alignments.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

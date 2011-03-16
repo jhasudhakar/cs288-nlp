@@ -1,9 +1,11 @@
 package edu.berkeley.nlp.assignments.assign3.student;
 
 import java.util.List;
+import java.util.Map;
 
 import edu.berkeley.nlp.mt.Alignment;
 import edu.berkeley.nlp.mt.SentencePair;
+import edu.berkeley.nlp.util.Counter;
 import edu.berkeley.nlp.util.CounterMap;
 
 /**
@@ -12,16 +14,12 @@ import edu.berkeley.nlp.util.CounterMap;
  * 
  * @author rxin
  */
-/**
- * @author rxin
- *
- */
 public class HmmAligner extends Model1HardEmAligner {
    
    /**
     * Number of EM iterations to run.
     */
-   protected static final int NUM_EM_ITERATIONS = 20;
+   protected static final int NUM_EM_ITERATIONS = 5;
    
    /**
     * The distortion likelihood for aligning a word to NULL.
@@ -212,7 +210,13 @@ public class HmmAligner extends Model1HardEmAligner {
          }
          
          // Normalize the counts.
-         newPairCounters.normalize();
+         //newPairCounters.normalize();
+         for (Integer k : newPairCounters.keySet()) {
+            Counter<Integer> counter = newPairCounters.getCounter(k);
+            if (counter.totalCount() > 0) {
+               counter.normalize();
+            }
+         }
       
          // Switch newPairCounters and pairCounters ...
          pairCounters = newPairCounters;
