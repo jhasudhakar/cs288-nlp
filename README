@@ -4,19 +4,19 @@ Assignments
 rxin@cs.berkeley.edu
 
 
-Assignment 1: A fast, efficient Kneser-Ney trigram language model.
+a1: A fast, efficient Kneser-Ney trigram language model.
 
-Assignment 2: Phrase-Based Decoding using 4 different models.
+a2: Phrase-Based Decoding using 4 different models.
  - monotonic beam-search decoder with no language model
  - monotonic beam search with an integrated trigram language model
  - beam search that permits limited distortion
  - last model unknown yet
 
-Assignment 3: Word-based alignment.
+a3: Word-based alignment.
  - heuristic aligner
  - IBM model 1 aligner with hard EM and soft EM implementations
  - HMM aligner
 
-Assignment 4:
+a4: semantic parser and classifier (skipped)
 
 
